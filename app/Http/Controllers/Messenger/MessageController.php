@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
-// যদি কাস্টম ইভেন্ট থাকে, তাহলে ইমপোর্ট করুন: use App\Events\MessageSent;
+use Illuminate\Support\Facades\Storage;  // ফাইল স্টোরেজের জন্য, যদি প্রয়োজন হয়
 
 class MessageController extends Controller
 {
@@ -40,29 +40,42 @@ class MessageController extends Controller
     public function sendMessage(Request $request, $userId)
     {
         $request->validate([
-            'receiver_id' => 'required|exists:users,id',  // রিসিভার আইডি ভ্যালিডেশন
-            'type' => 'required|in:text,video,audio',
-            'content' => 'required_if:type,text|string',
-            'file' => 'required_if:type,video,audio|mimes:mp4,mp3|max:10240',  // ফাইল সাইজ 10MB লিমিট
+            'receiver_id' => 'required|exists:users,id',
+            'content' => 'nullable|string',  // টেক্সট ঐচ্ছিক
+            'file' => 'nullable|file|mimes:mp4,mp3,jpg,jpeg,png,gif|max:10240',  // ফাইল ঐচ্ছিক
         ]);
 
+        $type = 'text';  // ডিফল্ট টাইপ
+        $path = null;
+        $contentToSave = $request->content;
+
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('uploads', 'public');  // ফাইল স্টোর
+            $file = $request->file('file');
+            $mimeType = $file->getMimeType();
+
+            // ফাইল টাইপ ডিটেক্ট
+            if (strpos($mimeType, 'image/') === 0) {
+                $type = 'image';
+            } elseif (strpos($mimeType, 'video/') === 0) {
+                $type = 'video';
+            } elseif (strpos($mimeType, 'audio/') === 0) {
+                $type = 'audio';
+            }
+
+            $path = $file->store('uploads', 'public');
+        } elseif (empty($contentToSave)) {
+            return back()->withErrors(['error' => 'At least content or file is required.']);
         }
 
         $message = Message::create([
             'user_id' => auth()->id(),
-            'receiver_id' => $request->receiver_id,  // এখানে $userId ব্যবহার করা যেতে পারে, কিন্তু ফর্ম থেকে নিচ্ছি
-            'type' => $request->type,
-            'content' => $request->type == 'text' ? $request->content : null,
+            'receiver_id' => $request->receiver_id,
+            'type' => $type,
+            'content' => $contentToSave,
             'file_path' => $path ?? null,
         ]);
 
-        // রিয়েল-টাইম নোটিফিকেশনের জন্য (যদি সেট আপ করা থাকে)
-        event(new MessageSent($message));  // কাস্টম ইভেন্ট ট্রিগার
-        // যদি AJAX রিকোয়েস্ট হয়, তাহলে JSON রেসপন্স দিন
-        // return response()->json(['message' => 'সফলভাবে সেন্ড করা হলো', 'data' => $message]);
-
+        event(new MessageSent($message));
         return redirect()->back()->with('success', 'মেসেজ সফলভাবে সেন্ড করা হলো');
     }
 }
