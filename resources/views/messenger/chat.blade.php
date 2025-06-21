@@ -32,11 +32,10 @@
                 <div class="d-flex align-items-start mb-2 {{ $message->user_id == auth()->id() ? 'justify-content-end' : 'justify-content-start' }}">
                     <div class="d-flex flex-row align-items-center">
                         <img src="https://ui-avatars.com/api/?name={{ urlencode($message->user->name ?? 'User') }}&background=4CAF50&color=fff" alt="{{ $message->user->name ?? 'User' }}" class="rounded-circle {{ $message->user_id == auth()->id() ? 'order-last' : '' }} me-2" width="30" height="30">
-                        <div class=" ">
+                        <div class="small bg-{{ $message->user_id == auth()->id() ? 'red' : 'success' }} bg-light bg-opacity-10 p-2" style="border-radius: 10px;">
                             <!-- সবসময় টেক্সট চেক করা হবে, যদি থাকে -->
                             @if($message->content)
-                            <p class="mb-0 text-dark small bg-{{ $message->user_id == auth()->id() ? 'primary' : 'success' }} bg-opacity-10 p-2 rounded-pill">{{ $message->content }}</p> <!-- rounded-pill যোগ করা হলো -->
-
+                            <p class="mb-0 text-dark ">{{ $message->content }}</p> <!-- rounded-pill যোগ করা হলো -->
                             @endif
 
                             @if($message->type == 'image')
@@ -64,7 +63,8 @@
                     <input type="hidden" name="receiver_id" value="{{ $userId }}">
                     <div class="input-group">
                         <input type="text" name="content" class="form-control" placeholder="Type a message..." aria-label="Message">
-                        <input type="file" name="file" class="form-control d-none" id="fileInput" accept="image/*,video/*,audio/*,.*">
+                        <input type="file" name="file" class="form-control d-none" id="fileInput" accept="image/*">
+                        <!-- <input type="file" name="file" class="form-control d-none" id="fileInput" accept="image/*,video/*,audio/*,.*"> -->
                         <button class="btn btn-outline-secondary" type="button" id="fileButton">
                             <!-- <i class="bi bi-paperclip"></i> -->
                             <img src="{{ asset('storage/uploads/icon/OIP-C.jpg') }}" alt="file" width="30" height="30">

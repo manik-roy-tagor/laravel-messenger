@@ -4,21 +4,32 @@ namespace App\Http\Controllers;
 
 
 use App\Models\Blog;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use HeyMarco\LinkPreview;
+use Illuminate\Support\Str;
 
 class BlogController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth')->only(['create', 'store']);  // শুধুমাত্র create এবং store মেথডের জন্য অথেনটিকেশন
+        $this->middleware('auth')->only(['post', 'store']);  // শুধুমাত্র create এবং store মেথডের জন্য অথেনটিকেশন
     }
 
     // ব্লগ লিস্ট দেখানো (পাবলিক)
-    public function index()
+    public function index(Request $request)
     {
-        $blogs = Blog::latest()->get();  // সব ব্লগ, সর্বশেষ প্রথমে
-        return view('welcome', compact('blogs'));  // welcome পেজে পাঠানো
+        $users = User::all();  // সব ইউজার
+        $totalUsers = $users->count(); // মোট ইউজার সংখ্যা
+        $blogs = Blog::with('user')
+                ->latest()
+                ->paginate(2);
+
+    if ($request->ajax()) {
+        return view('partials.blogs', compact('blogs'))->render();
+    }  // সব ব্লগ, সর্বশেষ প্রথমে
+        return view('welcome', compact('blogs', 'users', 'totalUsers'));  // welcome পেজে পাঠানো
     }
 
     // সিঙ্গল ব্লগ দেখানো (পাবলিক)
@@ -29,7 +40,7 @@ class BlogController extends Controller
     }
 
     // নতুন ব্লগ ফর্ম দেখানো (লগইনের পর)
-    public function create()
+    public function createblog()
     {
         return view('blogs.create');  // নতুন ব্লেড ফাইল
     }

@@ -20,6 +20,7 @@
 
             <!-- লগইন করা ইউজারদের জন্য ইনলাইন ব্লগ পোস্ট ফর্ম -->
             @auth
+            @if (auth()->id() === $user->id)
             <div class="card mb-4" style="border: 2px solid rgb(87, 28, 18);">
                 <div class="card-header">Create New Blog</div>
                 <div class="card-body">
@@ -35,43 +36,63 @@
                     </form>
                 </div>
             </div>
+            @endif
             @endauth
 
             <h4>Latest Blogs</h4>
-            <div id="blog-list">
-                @include('partials.blogs', ['blogs' => $blogs])
-            </div>
+            @foreach($user->blogs as $blog)
+            <div class="card mb-4 shadow" style="border-left: 5px solid #933; border-radius: 10px;">
+                <div class="card-header bg-white d-flex align-items-center">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode($blog->user->name) }}&background=0D8ABC&color=fff"
+                        alt="Avatar" class="rounded-circle me-2" width="40" height="40">
+                    <div>
+                        <a href="{{ route('user.profile', $blog->user->id) }}" class="fw-bold text-dark text-decoration-none">
+                            {{ $blog->user->name }}
+                        </a><br>
+                        <small class="text-muted">{{ $blog->created_at->diffForHumans() }}</small>
+                    </div>
+                </div>
 
-            <div id="scroll-loading" class="text-center mt-3" style="display: none;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="card-body">
+                    <h5 class="card-title">{{ $blog->title }}</h5>
+                    <p class="card-text">{{ Str::limit($blog->content, 150) }}</p>
+                    <button
+                        class="btn btn-outline-primary btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#blogModal"
+                        onclick="openBlogModal(this)"
+                        data-title="{{ $blog->title }}"
+                        data-content="{{ htmlspecialchars($blog->content) }}"
+                        data-author="{{ $blog->user->name }}"
+                        data-time="{{ $blog->created_at->diffForHumans() }}"
+                        data-avatar="https://ui-avatars.com/api/?name={{ urlencode($blog->user->name) }}&background=0D8ABC&color=fff"
+                        data-likes="{{ $blog->likes_count ?? 0 }}"
+                        data-comments="{{ $blog->comments_count ?? 0 }}"
+                        data-url="{{ route('blogs.show', $blog->id) }}">
+                        Read More
+                    </button>
+
+                </div>
+
+                <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="me-3"><i class="bi bi-heart text-danger"></i> {{ $blog->likes_count ?? 0 }}</span>
+                        <span class="me-3"><i class="bi bi-chat-left-dots text-secondary"></i> {{ $blog->comments_count ?? 0 }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="shareBlog({{ $blog->id }})">
+                        <i class="bi bi-share"></i> Share
+                    </button>
                 </div>
             </div>
+            @endforeach
 
         </div>
 
         <!-- ইউজার লিস্ট -->
         <div class="col-md-3 mb-4">
+            <h4>Users</h4>
             <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
 
-                        <span class="fw-bold text-center">All Users</span>
-                    </div>
-                    <span class="badge bg-primary rounded-pill">{{ $totalUsers }}</span>
-                </li>
-                @foreach($users as $user)
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&background=0D8ABC&color=fff"
-                            alt="Avatar" class="rounded-circle me-2" width="32" height="32">
-                        <a href="{{ route('user.profile', $user->id) }}" class="text-dark text-decoration-none">
-                            {{ $user->name }}
-                        </a>
-                    </div>
-                    <span class="badge bg-primary rounded-pill">{{ $user->blogs_count }}</span>
-                </li>
-                @endforeach
             </ul>
         </div>
     </div>
@@ -169,33 +190,5 @@
         }
     }
 </script>
-
-<script>
-    let page = 2;
-    let isLoading = false;
-    window.addEventListener('scroll', function() {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200 && !isLoading) {
-            isLoading = true;
-            document.getElementById('scroll-loading').style.display = 'block';
-
-            fetch(`{{ url()->current() }}?page=${page}`)
-                .then(response => response.text())
-                .then(data => {
-                    const parser = new DOMParser();
-                    const htmlDoc = parser.parseFromString(data, 'text/html');
-                    const newBlogs = htmlDoc.querySelector('#blog-list').innerHTML;
-                    if (newBlogs.trim() !== '') {
-                        document.getElementById('blog-list').insertAdjacentHTML('beforeend', newBlogs);
-                        page++;
-                        isLoading = false;
-                        document.getElementById('scroll-loading').style.display = 'none';
-                    } else {
-                        document.getElementById('scroll-loading').innerText = 'No more posts to load.';
-                    }
-                });
-        }
-    });
-</script>
-
 
 @endsection
